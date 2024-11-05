@@ -23,3 +23,5 @@ matches/competition_id/season_id/ liste des match_id
 events/match_id/liste des events
 
 Ligue 1 2015/2016 : competition_id 7, season_id 27
+
+shot : id 16 dans event
