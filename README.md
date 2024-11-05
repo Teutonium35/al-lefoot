@@ -25,3 +25,12 @@ events/match_id/liste des events
 Ligue 1 2015/2016 : competition_id 7, season_id 27
 
 shot : id 16 dans event
+
+## Import des données brutes
+
+Mettre le repo de données brutes au même niveau que ce repo : 
+
+dir
+|
+|->al-lefoot
+|->open-data
