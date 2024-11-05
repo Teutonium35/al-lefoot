@@ -5,7 +5,7 @@ competition_id = 7
 season_id = 27
 
 match_path = Path(__file__).parent.parent / 'open-data' / 'data' / 'matches' / f'{competition_id}' / f'{season_id}.json'
-match_path = Path(__file__).parent.parent / 'temp.json'
+match_path = Path(__file__).parent / 'temp.json'
 
 # print(f'{match_path=}')
 
