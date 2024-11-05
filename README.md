@@ -15,3 +15,11 @@ Ca devrait afficher un téléchargement de toutes les modifs récentes (ou rien 
 Puis modifications en local
 
 Puis commit grâce aux extensions git sur vscode (barre de gauche)
+
+competition : competition_id + season_id
+
+matches/competition_id/season_id/ liste des match_id
+
+events/match_id/liste des events
+
+Ligue 1 2015/2016 : competition_id 7, season_id 27
