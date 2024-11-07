@@ -23,7 +23,6 @@ def get_matches_from_season_and_competition(competition_id: int, season_id: int)
 
 def get_events_from_match_id(match_id: int):
     events_path = Path(__file__).parent.parent / 'open-data' / 'data' / 'events' / f'{match_id}.json'
-    events_path = Path(__file__).parent / 'temp_event.json'
 
     with open(events_path) as events_file:
         events_data = loads(events_file.read())
