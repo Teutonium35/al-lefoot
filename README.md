@@ -34,3 +34,8 @@ dir
 |
 |->al-lefoot
 |->open-data
+
+types :
+{'Miscontrol', 'Player Off', 'Shot', 'Shield', 'Player On', 'Substitution', 'Dribble', 'Foul Won', 'Pass', 'Half End', 'Ball Recovery', 'Half Start', 'Interception', 'Duel', 'Pressure', 'Dribbled Past', '50/50', 'Starting XI', 'Tactical Shift', 'Bad Behaviour', 'Carry', 'Goal Keeper', 'Ball Receipt*', 'Foul Committed', 'Clearance', 'Injury Stoppage', 'Dispossessed', 'Referee Ball-Drop', 'Block'}
+
+Shot scored : id 97
