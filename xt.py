@@ -1,6 +1,7 @@
 from event_extraction import get_events_from_match_id, get_matches_from_season_and_competition
 from math import floor
 from typing import Tuple
+from json import dumps
 
 FOOTBALL_FIELD_LENGTH = 120
 FOOTBALL_FIELD_WIDTH = 80
@@ -222,4 +223,11 @@ def build_xt_matrix(competition_id: int, season_id: int):
 competition_id = 7
 season_id = 27
 
-build_xt_matrix(competition_id, season_id)
+xt_matrix = build_xt_matrix(competition_id, season_id)
+
+print("Exporting matrix")
+from pathlib import Path
+result_path = Path(__file__).parent / "result.json"
+with open(result_path, "w") as result_file:
+    print(dumps(xt_matrix))
+    result_file.write(dumps(xt_matrix))
