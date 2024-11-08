@@ -1,4 +1,4 @@
-from event_extraction import get_events_from_match_id, get_matches_from_season_and_competition
+from event_extraction import get_events_from_match_id, get_matches_from_season_and_competition, get_full_matches
 from math import floor
 from typing import Tuple
 from json import dumps
@@ -11,6 +11,7 @@ WIDTH_SUBDIVISION_AMOUNT = int(FOOTBALL_FIELD_WIDTH/SUBDIVISION_SIZE)
 
 def get_events_sorted(competition_id: int, season_id: int):
     match_list = get_matches_from_season_and_competition(competition_id, season_id)
+    # match_list = get_full_matches()
     match_events = []
     total_length = len(match_list)
     current_index = 0
@@ -220,14 +221,16 @@ def build_xt_matrix(competition_id: int, season_id: int):
 
 
 
-competition_id = 7
-season_id = 27
+def process_new_matrix():
+    competition_id = 7
+    season_id = 27
+    xt_matrix = build_xt_matrix(competition_id, season_id)
 
-xt_matrix = build_xt_matrix(competition_id, season_id)
+    print("Exporting matrix")
+    from pathlib import Path
+    result_path = Path(__file__).parent / "result.json"
+    with open(result_path, "w") as result_file:
+        print(dumps(xt_matrix))
+        result_file.write(dumps(xt_matrix))
 
-print("Exporting matrix")
-from pathlib import Path
-result_path = Path(__file__).parent / "result.json"
-with open(result_path, "w") as result_file:
-    print(dumps(xt_matrix))
-    result_file.write(dumps(xt_matrix))
+process_new_matrix()
