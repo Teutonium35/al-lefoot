@@ -233,4 +233,5 @@ def process_new_matrix():
         print(dumps(xt_matrix))
         result_file.write(dumps(xt_matrix))
 
-process_new_matrix()
+if __name__ == "__main__":
+    process_new_matrix()
