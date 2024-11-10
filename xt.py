@@ -8,6 +8,7 @@ FOOTBALL_FIELD_WIDTH = 80
 SUBDIVISION_SIZE = 10
 LENGTH_SUBDIVISION_AMOUNT = int(FOOTBALL_FIELD_LENGTH/SUBDIVISION_SIZE)
 WIDTH_SUBDIVISION_AMOUNT = int(FOOTBALL_FIELD_WIDTH/SUBDIVISION_SIZE)
+ITERATION_DEPTH = 5
 
 def get_events_sorted(competition_id: int, season_id: int):
     match_list = get_matches_from_season_and_competition(competition_id, season_id)
@@ -202,7 +203,7 @@ def build_xt_matrix(competition_id: int, season_id: int):
     transition_matrix = generate_transition_matrix(movement_transition_matrix)
 
 
-    for _ in range(10):
+    for _ in range(ITERATION_DEPTH):
         for index in range(len(xt_base_matrix)):
             summed_xt = 0
             for destination_index in range(len(transition_matrix[index])):
