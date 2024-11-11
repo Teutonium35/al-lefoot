@@ -2,6 +2,8 @@ import pandas as pd
 import event_extraction
 import json
 import numpy as np
+from catboost import CatBoostClassifier, CatBoostRegressor, Pool
+import matplotlib.pyplot as plt
 
 def getAction(match_event):
     team = match_event[0]["possession_team"]["id"]
@@ -19,17 +21,50 @@ def getAction(match_event):
 
     return match_action, match_action_team1, match_action_team2
 
+def VAEP(proba):
+    pS, pD = proba[:,0], proba[:,1]
+    return (pS[1:]-pS[:-1]) - (pD[1:] - pD[:-1])
+
+
 def traitement(match_event):
-    team = match_event[0]["possession_team"]["id"]
     match_action, match_action_team1, match_action_team2 = getAction(match_event)
-    data = extract_features(match_action)
+    data, labels = extract_features(match_action)
+    proba = ML(data,labels)
+    vaep = VAEP(proba)
+    print(pd.DataFrame(vaep))
+    afficher_data(vaep[:50])
+
+def afficher_data(data):
+    fig, ax = plt.subplots()
+    ax.barh([i for i in range (len(data))], data)
+
+    ax.set_ylabel('VAEP')
+    ax.set_title('VAEP des différentes actions')
+    ax.legend(title='VAEP')
+
+    plt.show()
+
+def ML(data, labels):
     print(data)
+    train_data, test_data = data[:1000], data[1000:]
+    train_labels, test_labels = labels[:1000], labels[1000:]
+    model = CatBoostClassifier(iterations=2,
+                           depth=2,
+                           learning_rate=1,
+                           loss_function='Logloss',
+                           verbose=True)
+    # train the model
+    model.fit(train_data, train_labels)
+    # make the prediction using the resulting model
+    preds_class = model.predict(test_data)
+    preds_proba = model.predict_proba(test_data)
+    return preds_proba
 
 def extract_features(match_action):
     data = []
     labels = []
     colonnes = ['dx aᵢ', 'dx aᵢ₋₁ → aᵢ',  'dx  aᵢ₋₂ → aᵢ', 'dx aᵢ₋₁', 'dx  aᵢ₋₂', 'dy aᵢ', 'dy aᵢ₋₁ → aᵢ',  'dy  aᵢ₋₂ → aᵢ', 'dy aᵢ₋₁', 'dy  aᵢ₋₂', 'End location angle to goal aᵢ', 'End location angle to goal aᵢ₋₁', 'End location angle to goal aᵢ₋₂', 'End location dist to goal aᵢ', 'End location dist to goal aᵢ₋₁', 'End location dist to goal aᵢ₋₂', 'End location x aᵢ', 'End location x aᵢ₋₁', 'End location x aᵢ₋₂', 'End location y aᵢ', 'End location y aᵢ₋₁', 'End location y aᵢ₋₂',
-    'Start location angle to goal aᵢ', 'Start location angle to goal aᵢ₋₁', 'Start location angle to goal aᵢ₋₂', 'Start location dist to goal aᵢ', 'Start location dist to goal aᵢ₋₁', 'Start location dist to goal aᵢ₋₂', 'Start location x aᵢ', 'Start location x aᵢ₋₁', 'Start location x aᵢ₋₂', 'Start location y aᵢ', 'Start location y aᵢ₋₁', 'Start location y aᵢ₋₂', 'Same team in possession aᵢ₋₁ → aᵢ', 'Same team in possession aᵢ₋₂ → aᵢ', 'Δtime aᵢ₋₁ aᵢ', 'Δtime aᵢ₋₂ aᵢ', 'Time elapsed in period aᵢ', 'Time elapsed in period aᵢ₋₁', 'Time elapsed in period aᵢ₋₂', 'Time elapsed in match aᵢ', 'Time elapsed in match aᵢ₋₁', 'Time elapsed in match aᵢ₋₂', 'Action type aᵢ', 'Action type aᵢ₋₁', 'Action type aᵢ₋₂']
+    'Start location angle to goal aᵢ', 'Start location angle to goal aᵢ₋₁', 'Start location angle to goal aᵢ₋₂', 'Start location dist to goal aᵢ', 'Start location dist to goal aᵢ₋₁', 'Start location dist to goal aᵢ₋₂', 'Start location x aᵢ', 'Start location x aᵢ₋₁', 'Start location x aᵢ₋₂', 'Start location y aᵢ', 'Start location y aᵢ₋₁', 'Start location y aᵢ₋₂', 'Same team in possession aᵢ₋₁ → aᵢ', 'Same team in possession aᵢ₋₂ → aᵢ', 'Δtime aᵢ₋₁ aᵢ', 'Δtime aᵢ₋₂ aᵢ', 'Time elapsed in period aᵢ', 'Time elapsed in period aᵢ₋₁', 'Time elapsed in period aᵢ₋₂', 'Time elapsed in match aᵢ', 'Time elapsed in match aᵢ₋₁', 'Time elapsed in match aᵢ₋₂']
 
     start_localisationN_2 = match_action[0]["location"]
     start_localisationN_1 = match_action[1]["location"]
@@ -98,8 +133,7 @@ def extract_features(match_action):
         match_action[i-2]['minute']*60 + match_action[i-2]['second'],
         match_action[i]['minute']*60 + match_action[i]['second'] - (match_action[i]["period"]-1)*90*60,
         match_action[i-1]['minute']*60 + match_action[i-1]['second'] - (match_action[i-1]["period"]-1)*90*60,
-        match_action[i-2]['minute']*60 + match_action[i-2]['second'] - (match_action[i-2]["period"]-1)*90*60,
-        match_action[i]['type']['name'], match_action[i-1]['type']['name'], match_action[i-2]['type']['name']]
+        match_action[i-2]['minute']*60 + match_action[i-2]['second'] - (match_action[i-2]["period"]-1)*90*60]
 
 
 
@@ -110,10 +144,9 @@ def extract_features(match_action):
 
         #définition des labels : savoir si l'action est un "succes ou non"
         try :
-            res = match_action[i][action]['outcome']["name"]
+            res = (match_action[i][action]['outcome']["name"] == 'Complete')    #vaut True si la valeur est 'Complete' et False sinon (c'est à dire 'Incomplete)
         except :
             res = match_action[i]['possession_team']["id"] == match_action[i+1]['possession_team']["id"]
-
         labels.append(res)
         data.append(features)
 
@@ -132,16 +165,13 @@ if __name__ == "__main__":
     n = len(df)
     for i in range (1):
         try :
-            data = event_extraction.List_match(df["competition_id"][i], df["season_id"][i])
+            data = event_extraction.get_matches_from_season_and_competition(df["competition_id"][i], df["season_id"][i])
         except :
             data = []
         
-        data = event_extraction.List_match(2,27)
+        data = event_extraction.get_matches_from_season_and_competition(2,27)
         m = len(data)
         m = 1
         for k in range (m):
-            filename = "Innovation\open-data\data\events\\" + str(data[k]) + '.json'
-            # Ouvrir le fichier JSON
-            with open(filename, 'r') as file:
-                match_event = json.load(file)
+            match_event = event_extraction.get_events_from_match_id(data[k])
             traitement(match_event)
