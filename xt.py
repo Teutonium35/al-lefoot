@@ -27,6 +27,8 @@ def get_events_sorted(competition_id: int, season_id: int):
     carry_events = []
     successful_shot_events = []
     missed_shot_events = []
+    interception_events = []
+    duel_events = []
 
     total_length = len(match_events)
     current_index = 0
@@ -38,6 +40,10 @@ def get_events_sorted(competition_id: int, season_id: int):
                 pass_events.append(event)
             elif event["type"]["name"] == "Carry":
                 carry_events.append(event)
+            elif event["type"]["name"] == "Interception":
+                interception_events.append(event)
+            elif event["type"]["name"] == "50/50":
+                duel_events.append(event)
             elif event["type"]["name"] == "Shot":
                 if event["shot"]["outcome"]["name"] == "Goal":
                     successful_shot_events.append(event)
@@ -48,6 +54,7 @@ def get_events_sorted(competition_id: int, season_id: int):
 
     print("Finished sorting events")
     print(f'Retrieved {len(pass_events)} passes, {len(carry_events)} carries, {len(missed_shot_events)} missed shots and {len(successful_shot_events)} successful shots')
+    print(f'Also retrieved {len(duel_events)} duels and {len(interception_events)} interceptions.')
     
     return pass_events, carry_events, successful_shot_events, missed_shot_events
 
@@ -75,6 +82,14 @@ def get_positions_from_carry(carry_event) -> Tuple[int, int, int, int]:
 def get_position_from_shot(shot_event) -> Tuple[int, int]:
     shot_position = shot_event["location"]
     return shot_position[0], shot_position[1]
+
+def get_position_from_duel(duel_event) -> Tuple[int, int]:
+    duel_position = duel_event["location"]
+    return duel_position[0], duel_position[1]
+
+def get_position_from_interception(interception_event) -> Tuple[int, int]:
+    interception_position = interception_event["location"]
+    return interception_position[0], interception_position[1]
 
 def generate_base_matrix_3d():
     matrix = [[0]*LENGTH_SUBDIVISION_AMOUNT*WIDTH_SUBDIVISION_AMOUNT for _ in range(LENGTH_SUBDIVISION_AMOUNT*WIDTH_SUBDIVISION_AMOUNT)]

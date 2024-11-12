@@ -2,7 +2,14 @@ from pathlib import Path
 from json import loads
 from event_extraction import get_events_from_match_id
 from typing import List, Set, Tuple, Dict
-from xt import get_positions_from_pass, get_field_indexes_from_coordinates, get_array_position_from_field_indexes, get_positions_from_carry
+from xt import (
+    get_positions_from_pass,
+    get_field_indexes_from_coordinates,
+    get_array_position_from_field_indexes,
+    get_positions_from_carry,
+    get_position_from_duel,
+    get_position_from_interception
+)
 
 
 
@@ -248,6 +255,45 @@ def get_player_events(match: Dict, player: str) -> Tuple[Set[Dict], Set[Dict]]:
 
     return pass_events, carry_events
 
+def get_player_defensive_events(match: Dict, player: str) -> Tuple[Set[Dict], Set[Dict]]:
+    events = get_events_from_match_id(match["match_id"])
+    print(f'{len(events)=}')
+
+
+    sorted_events = list()
+    for event in events:
+        try:
+            print(f'{event["player"]["name"]=}')
+            print(f'{player=}')
+            if event["player"]["name"] == player:
+                print("ok here")
+                sorted_events.append(event)
+                # print(f'{sorted_events=}')
+
+        except KeyError:
+            pass
+    # print(f'{sorted_events=}')
+
+
+    interception_events = []
+    duel_events = []
+
+    total_length = len(sorted_events)
+    current_index = 0
+    for event in sorted_events:
+        print(f'{event=}')
+        current_index += 1
+        print(f"Sorting events... {int(current_index/total_length*100)}%", end='\r')
+        try:
+            if event["type"]["name"] == "Interception":
+                interception_events.append(event)
+            elif event["type"]["name"] == "50/50":
+                duel_events.append(event)
+        except:
+            print(f"Could not process event {event}")
+
+    return interception_events, duel_events
+
 def choose_subject() -> Tuple[str, str, str, str, str, str]:
     # xt_matrix = load_matrix()
     competition = choose_competition()
@@ -290,6 +336,35 @@ def rate_carry(carry_event: Dict):
     # print(f'{xt_matrix[start_array_index]=}')
     return xt_score
 
+def rate_interception(interception_event: Dict):
+    xt_matrix = load_matrix()
+    start_x, start_y = get_position_from_interception(interception_event)
+    start_lindex, start_windex = get_field_indexes_from_coordinates(120-start_x, 80-start_y)
+    start_array_index = get_array_position_from_field_indexes(start_lindex, start_windex)
+
+    xt_score = xt_matrix[start_array_index]
+
+    # print(f'{xt_matrix=}')
+    # print(f'{xt_matrix[end_array_index]=}')
+    # print(f'{xt_matrix[start_array_index]=}')
+    return xt_score
+
+
+def rate_duel(duel_event: Dict):
+    xt_matrix = load_matrix()
+    start_x, start_y = get_position_from_interception(duel_event)
+    start_lindex, start_windex = get_field_indexes_from_coordinates(120-start_x, 80-start_y)
+    start_array_index = get_array_position_from_field_indexes(start_lindex, start_windex)
+
+    xt_score = xt_matrix[start_array_index]
+
+    # print(f'{xt_matrix=}')
+    # print(f'{xt_matrix[end_array_index]=}')
+    # print(f'{xt_matrix[start_array_index]=}')
+    return xt_score
+
+
+
 def rate_player(
     match: Dict,
     player: str,
@@ -305,6 +380,70 @@ def rate_player(
     print(f'{player} got a score of {total_score}')
     return total_score
 
+def rate_defender(
+        match: Dict,
+        player: str
+) -> float:
+    interception_events, duel_events = get_player_defensive_events(match, player)
+    # print(f'{pass_events=}')
+    print(f'{len(interception_events)=}')
+    total_score = 0
+    for interception_event in interception_events:
+        total_score += rate_interception(interception_event)
+    for duel_event in duel_events:
+        total_score += rate_duel(duel_event)
+    print(f'{player} got a DEFENDING score of {total_score}')
+    return total_score
+    
+def get_position_from_player(match: Dict, searched_player: str):
+    lineup_path = Path(__file__).parent.parent / 'open-data' / 'data' / 'lineups' / f'{match["match_id"]}.json'
+    with open(lineup_path) as lineup_file:
+        lineup = loads(lineup_file.read())
+        print(f'{lineup=}')
+    for team in lineup:
+        for player in team["lineup"]:
+            if player["player_name"] == searched_player:
+                try:
+                    return player["positions"][0]["position"]
+                except:
+                    return None
+
+def get_ponderations(player, match):
+    position = get_position_from_player(match, player)
+
+    ponderation_dict = {
+        'Center Attacking Midfield': .75,
+        'Left Back': .3,
+        'Right Defensive Midfield': .35,
+        'Right Center Back': .1,
+        'Left Center Back': .1,
+        'Left Wing': .8,
+        'Right Center Midfield': .5,
+        'Right Back': .3,
+        'Center Forward': .9,
+        'Center Defensive Midfield': .35,
+        'Left Center Midfield': .5,
+        'Right Wing': .8,
+        'Left Defensive Midfield': .35,
+        }
+
+    if position not in ponderation_dict.keys():
+        return None
+    return ponderation_dict[position]
+    
+
+def rate_better_player(player: str, match: Dict):
+    off = rate_player(match, player)
+    deff = 8*rate_defender(match, player)
+
+    off_ponderation = get_ponderations(player, match)
+    if not off_ponderation:
+        print(f'Could not compute better rating for {player}')
+        return
+
+    better_rating_score = off*off_ponderation + deff*(1-off_ponderation)
+
+    return better_rating_score
 
 if __name__ == "__main__":
     # print(competition)
@@ -316,17 +455,75 @@ if __name__ == "__main__":
     away_team = "Marseille"
     match = get_match(competition, season, home_team, away_team)
     player = "Marco Verratti"
+
+
+
+
+
+
+
+    lineup_path = Path(__file__).parent.parent / 'open-data' / 'data' / 'lineups' / f'{match["match_id"]}.json'
+    with open(lineup_path) as lineup_file:
+        lineup = loads(lineup_file.read())
+        print(f'{lineup=}')
+    full_positions = set()
+    for team in lineup:
+        for player in team["lineup"]:
+                try:
+                    full_positions.add(player["positions"][0]["position"])
+                except:
+                    pass
+    print(f'{full_positions=}')
+
+
+
+
+
+
+
+
+
+
     # player = "Zlatan Ibrahimović"
     rate_player(match, "Marco Verratti")
 
     players = get_players_set(match)
 
-    full_ratings = [[player, rate_player(match, player)] for player in players]
+    # full_ratings = [[player, rate_player(match, player)] for player in players]
+
+    # print(f'{full_ratings}=')
+
+    # import matplotlib.pyplot as plt
+
+    # plt.figure()
+    # plt.barh([rating[0] for rating in full_ratings], [rating[1] for rating in full_ratings])
+    # plt.title("Off rating")
+    # plt.show()
+
+    # full_ratings = [[player, rate_defender(match, player)] for player in players]
+
+    # print(f'{full_ratings}=')
+
+    # import matplotlib.pyplot as plt
+
+    # plt.figure()
+    # plt.barh([rating[0] for rating in full_ratings], [rating[1] for rating in full_ratings])
+    # plt.title("Deff rating")
+    # plt.show()
+
+
+    full_ratings = [[player, rate_better_player(player, match)] for player in players]
 
     print(f'{full_ratings}=')
 
     import matplotlib.pyplot as plt
 
     plt.figure()
-    plt.barh([rating[0] for rating in full_ratings], [rating[1] for rating in full_ratings])
+    new_full_ratings = []
+    for rating in full_ratings:
+        if rating[1]:
+            new_full_ratings.append(rating)
+    plt.barh([rating[0] for rating in new_full_ratings], [rating[1] for rating in new_full_ratings])
+    plt.title("Better rating")
     plt.show()
+
