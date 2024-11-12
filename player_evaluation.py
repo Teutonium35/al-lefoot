@@ -170,7 +170,7 @@ def get_match(competition: str, season: str, home_team: str, away_team: str) -> 
         if match["home_team"]["home_team_name"] == home_team and match["away_team"]["away_team_name"] == away_team:
             return match
 
-def choose_player(match: Dict) -> str:
+def get_players_set(match: Dict) -> Set:
     lineup_path = Path(__file__).parent.parent / 'open-data' / 'data' / 'lineups' / f'{match["match_id"]}.json'
     with open(lineup_path) as lineup_file:
         lineup = loads(lineup_file.read())
@@ -179,6 +179,12 @@ def choose_player(match: Dict) -> str:
     for team in lineup:
         for player in team["lineup"]:
             players_set.add(player["player_name"])
+
+    return players_set
+
+
+def choose_player(match: Dict) -> str:
+    players_set = get_players_set(match)
     print(f'{players_set=}')
 
 
@@ -284,6 +290,21 @@ def rate_carry(carry_event: Dict):
     # print(f'{xt_matrix[start_array_index]=}')
     return xt_score
 
+def rate_player(
+    match: Dict,
+    player: str,
+)-> float:
+    pass_events, carry_events = get_player_events(match, player)
+    # print(f'{pass_events=}')
+    print(f'{len(pass_events)=}')
+    total_score = 0
+    for pass_event in pass_events:
+        total_score += rate_pass(pass_event)
+    for carry_event in carry_events:
+        total_score += rate_carry(carry_event)
+    print(f'{player} got a score of {total_score}')
+    return total_score
+
 
 if __name__ == "__main__":
     # print(competition)
@@ -296,13 +317,16 @@ if __name__ == "__main__":
     match = get_match(competition, season, home_team, away_team)
     player = "Marco Verratti"
     # player = "Zlatan Ibrahimović"
+    rate_player(match, "Marco Verratti")
 
-    pass_events, carry_events = get_player_events(match, player)
-    # print(f'{pass_events=}')
-    print(f'{len(pass_events)=}')
-    total_score = 0
-    for pass_event in pass_events:
-        total_score += rate_pass(pass_event)
-    for carry_event in carry_events:
-        total_score += rate_carry(carry_event)
-    print(f'{total_score=}')
+    players = get_players_set(match)
+
+    full_ratings = [[player, rate_player(match, player)] for player in players]
+
+    print(f'{full_ratings}=')
+
+    import matplotlib.pyplot as plt
+
+    plt.figure()
+    plt.barh([rating[0] for rating in full_ratings], [rating[1] for rating in full_ratings])
+    plt.show()
